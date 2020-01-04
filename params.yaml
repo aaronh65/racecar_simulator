@@ -45,7 +45,8 @@ pose_rviz_topic: "/initialpose"
 # The names of the transformation frames published to
 map_frame: "map"
 base_frame: "base_link"
+odom_frame: "odom"
 scan_frame: "laser"
 
 # Turn this off for mapping
-broadcast_transform: true
+broadcast_transform: false

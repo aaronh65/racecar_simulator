@@ -19,7 +19,7 @@ using namespace racecar_simulator;
 class RacecarSimulator {
   private:
     // The transformation frames used
-    std::string map_frame, base_frame, scan_frame;
+    std::string map_frame, base_frame, scan_frame, odom_frame;
 
     // The car state and parameters
     Pose2D pose;
@@ -91,6 +91,7 @@ class RacecarSimulator {
       n.getParam("map_frame", map_frame);
       n.getParam("base_frame", base_frame);
       n.getParam("scan_frame", scan_frame);
+	  n.getParam("odom_frame", odom_frame);
 
       // Fetch the car parameters
       int scan_beams;
@@ -192,8 +193,42 @@ class RacecarSimulator {
       odom.twist.twist.angular.z = 
         AckermannKinematics::angular_velocity(speed, steering_angle, wheelbase);
 
+
+	  // Broadcast map -> odom transform
+	  geometry_msgs::Transform odom_t;
+	  odom_t.translation.x = 0.;
+	  odom_t.translation.y = 0.;
+	  tf2::Quaternion odom_quat;
+	  odom_quat.setEuler(0., 0., 0.);
+	  odom_t.rotation.x = odom_quat.x();
+	  odom_t.rotation.y = odom_quat.y();
+	  odom_t.rotation.z = odom_quat.z();
+	  odom_t.rotation.w = odom_quat.w();
+
+	  geometry_msgs::TransformStamped odom_ts;
+	  odom_ts.transform = odom_t;
+	  odom_ts.header.stamp = timestamp;
+	  odom_ts.header.frame_id = map_frame;
+	  odom_ts.child_frame_id = odom_frame;
+
+	  geometry_msgs::Transform base_t;
+	  base_t.translation.x = 0.;
+	  base_t.translation.y = 0.;
+	  tf2::Quaternion base_quat;
+	  base_quat.setEuler(0., 0., 0.);
+	  base_t.rotation.x = base_quat.x();
+	  base_t.rotation.y = base_quat.y();
+	  base_t.rotation.z = base_quat.z();
+	  base_t.rotation.w = base_quat.w();
+
+	  geometry_msgs::TransformStamped base_ts;
+	  base_ts.transform = base_t;
+	  base_ts.header.stamp = timestamp;
+	  base_ts.header.frame_id = odom_frame;
+	  base_ts.child_frame_id = base_frame;
+
       // Publish them
-      if (broadcast_transform) br.sendTransform(ts);
+      if (broadcast_transform) br.sendTransform(ts); br.sendTransform(odom_ts); br.sendTransform(base_ts);
       odom_pub.publish(odom);
       // Set the steering angle to make the wheels move
       set_steering_angle(steering_angle, timestamp);
